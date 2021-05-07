@@ -1,0 +1,25 @@
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: app
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Object
+    object:
+      metric:
+        name: call_main_page
+      # describedObject는 app으로 설정해도 kustomize에서 자동적으로 생성해주지 않음
+      # 실제 구성되는 Deployment, Service명으로 구성해줘야 함
+      describedObject:
+        kind: Service
+        name: bff-app-v1-dev
+      target:
+        type: AverageValue
+        averageValue: 10

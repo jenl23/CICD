@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: cart-app
+domain:
+  group: awesome
+  name: cart

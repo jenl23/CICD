@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.skcc.account.repository.AccountMapper">
+	<parameterMap type="com.skcc.account.event.message.AccountEvent" id="AccountEvent">
+		<parameter property="id"/>
+		<parameter property="domain"/>
+		<parameter property="accountId"/>
+		<parameter property="eventType"/>
+		<parameter property="payload" typeHandler="com.skcc.account.config.AccountPayloadJsonTypeHandler"/>
+		<parameter property="txId"/>
+		<parameter property="createdAt"/>
+	</parameterMap>
+	<resultMap id="AccountEvent" type="com.skcc.account.event.message.AccountEvent">
+		<result property="id" column="id"/>
+		<result property="domain" column="domain"/>
+		<result property="accountId" column="accountId"/>
+		<result property="eventType" column="eventType"/>
+		<result property="payload" column="payload" typeHandler="com.skcc.account.config.AccountPayloadJsonTypeHandler"/>
+		<result property="txId" column="txId"/>
+		<result property="createdAt" column="createdAt"/>
+	</resultMap>
+
+	<select id="findByUsername" parameterType="String" resultType="com.skcc.account.domain.Account">
+		select * from accounts where username=#{username}
+	</select>
+	
+	<select id="findById" parameterType="long" resultType="com.skcc.account.domain.Account">
+		select * from accounts where id=#{id}
+	</select>
+	
+	<insert id="createAccount" parameterType="com.skcc.account.domain.Account" useGeneratedKeys="true" keyProperty="id" >
+		insert into accounts(username, name, password, mobile, address, scope, createdAt) 
+		values(#{username}, #{name}, #{password}, #{mobile}, #{address}, #{scope}, NOW())
+	</insert>
+	
+	<update id="editAccount" parameterType="com.skcc.account.domain.Account">
+		update accounts set password = #{password}, mobile = #{mobile}, address = #{address} where id = #{id}
+	</update>
+	
+	<select id="getAccountEventId" resultType="long">
+		select event_seq.nextval;
+	</select>
+	
+	<insert id="createAccountEvent" parameterMap="AccountEvent">
+		insert into account_events(id, domain, accountId, eventType, payload, txId, createdAt) 
+		values(#{id}, #{domain}, #{accountId}, #{eventType}
+			, #{payload, typeHandler=com.skcc.account.config.AccountPayloadJsonTypeHandler}
+			, #{txId}, NOW())
+	</insert>
+	
+	<select id="getAccountEvent" resultMap="AccountEvent">
+		select * from account_events;
+	</select>
+	
+</mapper>

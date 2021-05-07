@@ -1,0 +1,63 @@
+server:
+  port: 8184
+
+domain:
+  name: product
+  group: awesome
+
+spring:
+  application:
+    name: product-app
+  datasource:
+    platform: h2
+    url: jdbc:h2:mem:testdb;
+    username: sa
+    password: null
+    driver-class-name: org.h2.Driver
+    initialization-mode: always
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+    open-in-view: false
+    generate-ddl: false
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    database: mysql
+  h2:
+    console:
+      enabled: true
+      settings:
+        web-allow-others: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: user
+    password: password
+
+  redis:
+    port: 6379
+    host: redis-host
+    password: redis-password
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 10
+        min-idle: 2
+        max-wait: 30
+    database: 0
+  cache:
+    type: redis
+    redis:
+      defaultExpireTime: 600
+      time-to-live: 60
+      key-prefix: "myCache_"
+      use-key-prefix: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+        - "*"

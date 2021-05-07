@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.skcc.product.repository.ProductMapper">
+	
+	<parameterMap type="com.skcc.product.event.message.ProductEvent" id="ProductEvent">
+		<parameter property="id"/>
+		<parameter property="productId"/>
+		<parameter property="domain"/>
+		<parameter property="eventType"/>
+		<parameter property="payload" typeHandler="com.skcc.product.config.ProductPayloadJsonTypeHandler"/>
+		<parameter property="txId"/>
+		<parameter property="createdAt"/>
+	</parameterMap>
+	<resultMap type="com.skcc.product.event.message.ProductEvent" id="ProductEvent">
+		<result property="id" column="id"/>
+		<result property="productId" column="productId"/>
+		<result property="domain" column="domain"/>
+		<result property="eventType" column="eventType"/>
+		<result property="payload" column="payload" typeHandler="com.skcc.product.config.ProductPayloadJsonTypeHandler"/>
+		<result property="txId" column="txId"/>
+		<result property="createdAt" column="createdAt"/>
+	</resultMap>
+
+	<select id="findByCategoryId" resultType="com.skcc.product.domain.Product">
+		select a.id, a.name, b.name as categoryName, a.active, a.originalPrice, a.salePercentage, a.salePrice, a.resultPrice, a.amount, a.img, a.createdAt from products a, categories b where a.categoryId = b.id and a.categoryId = #{categoryId} and a.active = 'active' order by id
+	</select>
+	
+	<select id="findProductOnSale" resultType="com.skcc.product.domain.Product">
+		select a.id, a.name, b.name as categoryName, a.active, a.originalPrice, a.salePercentage, a.salePrice, a.resultPrice, a.amount, a.img, a.createdAt from products a, categories b where a.categoryId = b.id and a.salePercentage > 0 and a.active = 'active' order by id
+	</select>
+	
+	<select id="findById" parameterType="long" resultType="com.skcc.product.domain.Product">
+		select a.id, a.name, b.name as categoryName, a.active, a.originalPrice, a.salePercentage, a.salePrice, a.resultPrice, a.amount, a.img, a.createdAt from products a, categories b where a.categoryId = b.id and a.id = #{id}
+	</select>
+	
+	<update id="setProductAmount" >
+		update products set active = #{active}, amount = #{amount} where id = #{id}
+	</update>
+	
+	<update id="addProductAmount" >
+		update products set active = 'active', amount = amount + #{quantity} where id = #{id}
+	</update>
+	
+	<update id="subtractProductAmount">
+		update products set amount = amount - #{quantity} where id = #{id}
+	</update>
+	
+	<insert id="createProductEvent" parameterMap="ProductEvent">
+		insert into product_events(id, domain, productId, eventType, payload, txId, createdAt) 
+			values(#{id}, #{domain}, #{productId}, #{eventType}
+			, #{payload, typeHandler=com.skcc.product.config.ProductPayloadJsonTypeHandler}
+			, #{txId}, NOW())
+	</insert>
+	
+	<select id="getProductEventId" resultType="long">
+		select event_seq.nextval;
+	</select>
+	
+	<select id="findProductEvent" resultMap="ProductEvent">
+		select * from product_events where txId = #{txId} and productId = #{productId} and eventType = #{eventType}
+	</select>
+	
+	<select id="getAllProducts" resultType="com.skcc.product.domain.Product">
+		select a.id, a.name, b.name as categoryName, a.active, a.originalPrice, a.salePercentage, a.salePrice, a.resultPrice, a.amount, a.img, a.createdAt from products a, categories b where a.categoryId = b.id and a.active = 'active' order by id
+	</select>
+	
+	<update id="setProductInactive">
+		update products set active = 'inactive' where id = #{id}
+	</update>
+	
+	<select id="getProductEvent" resultMap="ProductEvent">
+		select * from product_events;
+	</select>
+	
+</mapper>

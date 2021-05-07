@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.skcc.accountbank.repository.AccountBankMapper">
+
+	<parameterMap type="com.skcc.accountbank.event.message.AccountBankEvent" id="AccountBankEvent">
+		<parameter property="id"/>
+		<parameter property="domain"/>
+		<parameter property="accountBankId"/>
+		<parameter property="eventType"/>
+		<parameter property="payload" typeHandler="com.skcc.accountbank.config.AccountBankPayloadJsonTypeHandler"/>
+		<parameter property="txId"/>
+		<parameter property="createdAt"/>
+	</parameterMap>
+	
+	<resultMap type="com.skcc.accountbank.event.message.AccountBankEvent" id="AccountBankEvent">
+		<result property="id" column="id"/>
+		<result property="domain" column="domain"/>
+		<result property="accountBankId" column="accountBankId"/>
+		<result property="eventType" column="eventType"/>
+		<result property="payload" column="payload" typeHandler="com.skcc.accountbank.config.AccountBankPayloadJsonTypeHandler"/>
+		<result property="txId" column="txId"/>
+		<result property="createdAt" column="createdAt"/>
+	</resultMap>
+	
+	<select id="findAccountBankByAccountId" parameterType="long" resultType="com.skcc.accountbank.domain.AccountBank">
+		select * from account_banks where accountId = #{accountId} and active = 'active'
+	</select>
+	
+	<select id="findById" parameterType="long" resultType="com.skcc.accountbank.domain.AccountBank">
+		select * from account_banks where id = #{id}
+	</select>
+	
+	<select id="getAccountBankEventId" parameterType="long" resultType="long">
+		select event_seq.nextval;
+	</select>
+	
+	<insert id="createAccountBankEvent" parameterMap="AccountBankEvent">
+		insert into account_bank_events(id, domain, accountBankId, eventType, payload, txId, createdAt) 
+		values(#{id}, #{domain}, #{accountBankId}, #{eventType}
+		, #{payload, typeHandler=com.skcc.accountbank.config.AccountBankPayloadJsonTypeHandler}
+		, #{txId}, NOW())
+	</insert>
+		
+	<insert id="createAccountBank" parameterType="com.skcc.accountbank.domain.AccountBank" useGeneratedKeys="true" keyProperty="id">
+		insert into account_banks(accountId, bankName, bankNumber, active, createdAt) 
+		values(#{accountId}, #{bankName}, #{bankNumber}, #{active}, NOW())
+	</insert>
+	
+</mapper>

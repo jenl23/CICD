@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: bff-app
+api:
+  account:
+    url: http://account-app-v1-dev:8080
+  cart:
+    url: http://cart-app-v1-dev:8080
+  order:
+    url: http://order-app-v1-dev:8080
+  payment:
+    url: http://payment-app-v1-dev:8080
+  product:
+    url: http://product-app-v1-dev:8080
+awesome:
+  title: null

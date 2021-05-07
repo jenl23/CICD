@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: order-app
+domain:
+  group: awesome
+  name: order

@@ -1,0 +1,32 @@
+server:
+  port: 8182
+
+domain:
+  group: awesome
+  name: order
+  
+spring:
+  application:
+    name: order-app
+  datasource:
+    platform: h2
+    url: jdbc:h2:mem:testdb;
+    username: sa
+    password: null
+    driver-class-name: org.h2.Driver
+    initialization-mode: always
+  h2:
+    console:
+      enabled: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: user
+    password: password
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+        - "*"

@@ -1,0 +1,79 @@
+@Library('retort-lib') _
+def label = "jenkins-${UUID.randomUUID().toString()}"
+
+def ZCP_USERID='mptf'
+
+// Docker image의 경로
+// [변경사항] modern/example/awesome-shopping-bff을 Image Registry 정보에 맞게 수정
+def DOCKER_IMAGE='modern/example/awesome-shopping-bff'
+
+// Docker image의 배포 버젼
+// [변경사항] '0.0.1'을 배포할 Image 버젼에 맞게 수정
+// Docker image 버젼을 Jenkins 빌드 버젼으로 적용하는 예시로 별도의 DOCKER_IMAGE_VERSION 대신 BUILD_NUMBER을 사용함
+// def DOCKER_IMAGE_VERSION='0.0.1'
+
+// kubernetes에 배포할 Namespace 이름
+// [변경사항] 'awesome-shopping-test'을 배포할 Namespace이름으로 수정
+def K8S_NAMESPACE='awesome-shopping-test'
+
+// kustomize 기반의 CD형상 정보를 가지고 있는 repo
+// [변경사항]
+def CD_REPO='factory-git.cloudzcp.io/edu999/awesome-shopping-template.git'
+
+timestamps {
+    podTemplate(label:label,
+        serviceAccount: "zcp-system-sa-${ZCP_USERID}",
+        containers: [
+            containerTemplate(name: 'maven', image: 'maven:3.5.2-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
+            containerTemplate(name: 'docker', image: 'docker:17-dind', ttyEnabled: true, command: 'dockerd-entrypoint.sh', privileged: true),
+            containerTemplate(name: 'kubectl', image: 'lachlanevenson/k8s-kubectl:v1.18.2', ttyEnabled: true, command: 'cat'),
+            containerTemplate(name: 'tools', image: 'argoproj/argo-cd-ci-builder:v1.0.0', command: 'cat', ttyEnabled: true)
+        ],
+        volumes: [
+            persistentVolumeClaim(mountPath: '/root/.m2', claimName: 'zcp-jenkins-mvn-repo')
+        ]) {
+    
+        node(label) {
+            stage('SOURCE CHECKOUT') {
+                def repo = checkout scm
+            }
+    
+            stage('BUILD') {
+                container('maven') {
+                    // 소스코드의 pom.xml 경로
+                    // [변경사항] appstore/awesome-shopping/awesome-bff-service/pom.xml 을 pom.xml의 경로에 맞게 수정
+                    mavenBuild goal: 'clean package -s appstore/awesome-shopping/settings.xml -DskipTests=true -f appstore/awesome-shopping/awesome-bff-service/pom.xml', systemProperties:['maven.repo.local':"/root/.m2/${JOB_NAME}"]
+                }
+            }
+    
+            // 예제 코드 위치
+            // [변경사항] appstore/awesome-shopping/awesome-bff-service을 배포 서비스의 Root 경로로 수정
+            dir('appstore/awesome-shopping/awesome-bff-service') {
+                stage('BUILD DOCKER IMAGE') {
+                    container('docker') {
+                        dockerCmd.build tag: "${HARBOR_REGISTRY}/${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                        dockerCmd.push registry: HARBOR_REGISTRY, imageName: DOCKER_IMAGE, imageVersion: BUILD_NUMBER, credentialsId: "HARBOR_CREDENTIALS"
+                    }
+                }
+            }
+    
+            // CD에 적용할 Container Image 정보 업데이트
+            // GIT_USER, GIT_PWD는 Jenkins credentials 설정에서 secret text 타입으로 저장한 후 활용
+            // [변경사항] '${GIT_USER}@mail.com'을 시스템으로 적용할 mail 정보로 변경
+            dir("awesome-bff-service/overlay/dev") {
+                stage('Deploy to dev') {
+                    withCredentials([usernamePassword(credentialsId: 'GIT_CREDENTIALS', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PWD')]) {
+                        container('tools') {
+                            sh "git config remote.origin.url https://${GIT_USER}:${GIT_PWD}@${CD_REPO}"
+                            sh "git config --global user.email '${GIT_USER}@mail.com'"
+                            sh "git config --global user.name '${GIT_USER}'"
+                            sh "kustomize edit set image cloudsvcdev/microservice=${HARBOR_REGISTRY}/${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                            sh "git checkout master"
+                            sh "git commit -am 'Publish new version ${BUILD_NUMBER} to dev' && git push"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

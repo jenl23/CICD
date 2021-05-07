@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.skcc.cart.repository.CartMapper">
+	<parameterMap id="Cart" type="com.skcc.cart.domain.Cart">
+		<parameter property="id"/>
+		<parameter property="accountId"/>
+		<parameter property="productId"/>
+		<parameter property="productActive"/>
+		<parameter property="productQuantity"/>
+		<parameter property="productInfo" typeHandler="com.skcc.cart.config.CartProductJsonTypeHandler"/>
+		<parameter property="createdAt"/>
+	</parameterMap>
+	<resultMap id="Cart" type="com.skcc.cart.domain.Cart">
+		<result property="id" column="id"/>
+		<result property="accountId" column="accountId"/>
+		<result property="productId" column="productId"/>
+		<result property="productActive" column="productActive"/>
+		<result property="productQuantity" column="productQuantity"/>
+		<result property="productInfo" column="ProductInfo" typeHandler="com.skcc.cart.config.CartProductJsonTypeHandler"/>
+		<result property="createdAt" column="createdAt"/>
+	</resultMap>
+	
+	<parameterMap type="com.skcc.cart.event.message.CartEvent" id="CartEvent">
+		<parameter property="id"/>
+		<parameter property="cartId"/>
+		<parameter property="domain"/>
+		<parameter property="eventType"/>
+		<parameter property="payload" typeHandler="com.skcc.cart.config.CartPayloadJsonTypeHandler"/>
+		<parameter property="txId"/>
+		<parameter property="createdAt"/>
+	</parameterMap>
+	<resultMap type="com.skcc.cart.event.message.CartEvent" id="CartEvent">
+		<result property="id" column="id"/>
+		<result property="cartId" column="cartId"/>
+		<result property="domain" column="domain"/>
+		<result property="eventType" column="eventType"/>
+		<result property="payload" column="payload" typeHandler="com.skcc.cart.config.CartPayloadJsonTypeHandler"/>
+		<result property="txId" column="txId"/>
+		<result property="createdAt" column="createdAt"/>
+	</resultMap>
+	
+	<select id="findCartByAccountId" parameterType="long" resultMap="Cart">
+		select * from carts where accountId=#{accountId}
+	</select>
+	
+	<insert id="addCart" parameterMap="Cart"  useGeneratedKeys="true" keyProperty="id">
+		insert into carts (accountId, productId, productActive, productQuantity, productInfo, createdAt)
+		values(#{accountId}, #{productId}, #{productActive}, #{productQuantity}, #{productInfo, typeHandler=com.skcc.cart.config.CartProductJsonTypeHandler}, NOW())
+	</insert>
+	
+	<delete id="deleteCart" parameterType="long">
+		delete from carts where id = #{id}
+	</delete>
+	
+	<select id="findCartByProductId" parameterType="long" resultType="long">
+		select count(*) from carts where accountId=#{accountId} and productId=#{productId}
+	</select>
+	
+	<select id="findById" parameterType="long" resultMap="Cart">
+		select * from carts where id = #{id}
+	</select>
+	
+	<select id="getCartEventId" resultType="long">
+		select event_seq.nextval;
+	</select>
+	
+	<insert id="createCartEvent" parameterMap="CartEvent">
+		insert into cart_events(id, domain, cartId, eventType, payload, txId, createdAt) 
+			values(#{id}, #{domain}, #{cartId}, #{eventType}
+			, #{payload, typeHandler=com.skcc.cart.config.CartPayloadJsonTypeHandler}
+			, #{txId}, NOW())
+	</insert>
+	
+	<update id="setCartProductInactiveAndProductInfo" parameterMap="Cart">
+		update carts set productActive = 'inactive', productInfo = #{productInfo, typeHandler=com.skcc.cart.config.CartProductJsonTypeHandler} 
+		where productId = #{productId} and productActive = 'active'
+	</update>
+	
+	<update id="setCartProductActiveAndProductInfo" parameterMap="Cart">
+		update carts set productActive = 'active', productInfo = #{productInfo, typeHandler=com.skcc.cart.config.CartProductJsonTypeHandler} 
+		where productId = #{productId} and productActive = 'inactive'
+	</update>
+	
+	<select id="findCartToBeProductInactiveById" parameterType="long" resultMap="Cart">
+		select * from carts where productId = #{prouctId} and productActive = 'active'
+	</select>
+	
+	<select id="findCartToBeProductActiveById" parameterType="long" resultMap="Cart">
+		select * from carts where productId = #{prouctId} and productActive = 'inactive'
+	</select>
+	
+	<update id="setCartQuantity" parameterType="long">
+		update carts set productQuantity = #{quantity} where id = #{id}
+	</update>
+	
+	<select id="getCartEvent" resultMap="CartEvent">
+		select * from cart_events;
+	</select>
+</mapper>

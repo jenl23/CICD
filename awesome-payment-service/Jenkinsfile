@@ -1,0 +1,71 @@
+@Library('retort-lib') _
+def label = "jenkins-${UUID.randomUUID().toString()}"
+
+def ZCP_USERID='mptf'
+
+// Docker image의 경로
+// [변경사항] modern/example/awesome-payment-service을 Image Registry 정보에 맞게 수정
+def DOCKER_IMAGE='modern/example/awesome-payment-service'
+
+// Docker image의 배포 버젼
+// [변경사항] '0.0.1'을 배포할 Image 버젼에 맞게 수정
+def DOCKER_IMAGE_VERSION='0.0.1'
+
+// kubernetes에 배포할 Namespace 이름
+// [변경사항] 'awesome-shopping-test'을 배포할 Namespace이름으로 수정
+def K8S_NAMESPACE='awesome-shopping-test'
+
+timestamps {
+    podTemplate(label:label,
+        serviceAccount: "zcp-system-sa-${ZCP_USERID}",
+        containers: [
+            containerTemplate(name: 'maven', image: 'maven:3.5.2-jdk-8-alpine', ttyEnabled: true, command: 'cat'),
+            containerTemplate(name: 'docker', image: 'docker:17-dind', ttyEnabled: true, command: 'dockerd-entrypoint.sh', privileged: true),
+            containerTemplate(name: 'kubectl', image: 'lachlanevenson/k8s-kubectl:v1.18.2', ttyEnabled: true, command: 'cat')
+        ],
+        volumes: [
+            persistentVolumeClaim(mountPath: '/root/.m2', claimName: 'zcp-jenkins-mvn-repo')
+        ]) {
+    
+        node(label) {
+            stage('SOURCE CHECKOUT') {
+                def repo = checkout scm
+            }
+    
+            stage('BUILD') {
+                container('maven') {
+                    // 소스코드의 pom.xml 경로
+                    // [변경사항] appstore/awesome-shopping/awesome-payment-service/pom.xml 을 pom.xml의 경로에 맞게 수정
+                    mavenBuild goal: 'clean package -s appstore/awesome-shopping/settings.xml -DskipTests=true -f appstore/awesome-shopping/awesome-payment-service/pom.xml', systemProperties:['maven.repo.local':"/root/.m2/${JOB_NAME}"]
+                }
+            }
+    
+            // 예제 코드 위치
+            // [변경사항] appstore/awesome-shopping/awesome-payment-service을 배포 서비스의 Root 경로로 수정
+            dir('appstore/awesome-shopping/awesome-payment-service') {
+                stage('BUILD DOCKER IMAGE') {
+                    container('docker') {
+                        dockerCmd.build tag: "${HARBOR_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_IMAGE_VERSION}"
+                        dockerCmd.push registry: HARBOR_REGISTRY, imageName: DOCKER_IMAGE, imageVersion: DOCKER_IMAGE_VERSION, credentialsId: "HARBOR_CREDENTIALS"
+                    }
+                }
+            }
+    
+            /*
+                Rolling, Blue/Green, Canary 등의 배포 정책을 적용하려면 추가적인 stage 개선 작업이 요구됨
+            */
+            stage('DEPLOY') {
+                container('kubectl') {
+                    // kubernetes yaml 기준으로 배포 실행시 사용하며, 기본 주석처리하였음
+                    // [변경사항] appstore/awesome-shopping/awesome-payment-service/overlay/dev/deploy.yaml을 kubenetes에 적용할 yaml 파일로 변경
+                    // kubeCmd.apply file: 'appstore/awesome-shopping/awesome-payment-service/overlay/dev/deploy.yaml', wait: 300, recoverOnFail: false, namespace: K8S_NAMESPACE
+
+                    // kubectl의 kustomize 옵션으로 사용
+                    // [변경사항] appstore/awesome-shopping/awesome-payment-service을 경로에 맞게 수정
+                    // [변경사항] awesome-shopping-test을 namesapce정보로 변경
+                    sh 'kubectl -n awesome-shopping-test apply -k appstore/awesome-shopping/awesome-payment-service/overlay/dev/'
+                }
+            }
+        }
+    }
+}

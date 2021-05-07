@@ -1,0 +1,22 @@
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: app
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: External
+    external:
+      metric:
+        name: message_count
+      target:
+        type: Value
+        value: 10
+
+        

@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: payment-app
+domain:
+  group: awesome
+  name: payment

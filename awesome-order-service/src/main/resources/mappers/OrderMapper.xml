@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.skcc.order.repository.OrderMapper">
+	<parameterMap id="Order" type="com.skcc.order.domain.Order">
+		<parameter property="id" />
+		<parameter property="accountId" />
+		<parameter property="paymentId" />
+		<parameter property="accountInfo" typeHandler="com.skcc.order.config.OrderAccountTypeHandler"/>
+		<parameter property="productsInfo" typeHandler="com.skcc.order.config.OrderProductTypeHandler"/>
+		<parameter property="paymentInfo" typeHandler="com.skcc.order.config.OrderPaymentTypeHandler"/>
+		<parameter property="paid" />		
+		<parameter property="status" />
+		<parameter property="createdAt" />
+	</parameterMap>
+	<resultMap id="Order" type="com.skcc.order.domain.Order">
+		<result property="id" column="id"/>
+		<result property="accountId" column="accountId"/>
+		<result property="paymentId" column="paymentId"/>
+		<result property="accountInfo" column="accountInfo" typeHandler="com.skcc.order.config.OrderAccountTypeHandler"/>
+		<result property="productsInfo" column="productsInfo" typeHandler="com.skcc.order.config.OrderProductTypeHandler"/>
+		<result property="paymentInfo" column="paymentInfo" typeHandler="com.skcc.order.config.OrderPaymentTypeHandler"/>
+		<result property="paid" column="paid"/>
+		<result property="status" column="status"/>
+		<result property="createdAt" column="createdAt"/>
+	</resultMap>
+	<parameterMap type="com.skcc.order.event.message.OrderEvent" id="OrderEvent">
+		<parameter property="id"/>
+		<parameter property="domain"/>
+		<parameter property="orderId"/>
+		<parameter property="eventType"/>
+		<parameter property="payload" typeHandler="com.skcc.order.config.OrderPayloadTypeHandler"/>
+		<parameter property="txId"/>
+		<parameter property="createdAt"/>
+	</parameterMap>
+	<resultMap type="com.skcc.order.event.message.OrderEvent" id="OrderEvent">
+		<result property="id" column="id"/>
+		<result property="domain" column="domain"/>
+		<result property="orderId" column="orderId"/>
+		<result property="eventType" column="eventType"/>
+		<result property="payload" column="payload" typeHandler="com.skcc.order.config.OrderPayloadTypeHandler"/>
+		<result property="txId" column="txId"/>
+		<result property="createdAt" column="createdAt"/>
+	</resultMap>
+	
+	<select id="findOrderByAccountId" parameterType="long" resultMap="Order">
+		select * from orders where accountId = #{accountId}
+	</select>
+	
+	<insert id="createOrder" parameterMap="Order" useGeneratedKeys="true" keyProperty="id">
+		insert into orders(id, accountId, paymentId, accountInfo, productsInfo, paymentInfo, paid, status, createdAt) 
+		values(#{id}, #{accountId}, #{paymentId}
+			, #{accountInfo, typeHandler=com.skcc.order.config.OrderAccountTypeHandler}
+			, #{productsInfo, typeHandler=com.skcc.order.config.OrderProductTypeHandler}
+			, #{paymentInfo, typeHandler=com.skcc.order.config.OrderPaymentTypeHandler}
+			, #{paid}, #{status}, NOW())
+	</insert>
+	
+	<update id="cancelOrder" parameterType="long">
+		update orders set status = 'canceled' where id = #{id}
+	</update>
+	
+	<select id="getOrderEventId" resultType="long">
+		select event_seq.nextval;
+	</select>
+	
+	<select id="getOrderId" resultType="long">
+		select order_seq.nextval;
+	</select>
+	
+	<insert id="createOrderEvent" parameterMap="OrderEvent" >
+		insert into order_events(id, domain, orderId, eventType, payload, txId, createdAt) 
+		values(#{id}, #{domain}, #{orderId}, #{eventType}
+			, #{payload, typeHandler=com.skcc.order.config.OrderPayloadTypeHandler}
+			, #{txId}, NOW())
+	</insert>
+	
+	<select id="findOrderById" resultMap="Order">
+		select * from orders where id = #{id}
+	</select>
+	
+	<update id="setOrderPaymentId" parameterMap="Order">
+		update orders set paymentId = #{paymentId}, paymentInfo = #{paymentInfo, typeHandler=com.skcc.order.config.OrderPaymentTypeHandler} 
+		where id = #{id}
+	</update>
+	
+	<update id="payOrder" parameterMap="Order">
+		update orders set paid = #{paid}, status = #{status}, paymentInfo = #{paymentInfo, typeHandler=com.skcc.order.config.OrderPaymentTypeHandler} 
+		where id = #{id}
+	</update>
+	
+	<select id="findOrderEventByTxId" resultMap="OrderEvent">
+		select * from order_events where txId = #{txId} and eventType = #{eventType}
+	</select>
+	
+	<select id="getOrderEvent" resultMap="OrderEvent">
+		select * from order_events;
+	</select>
+	
+</mapper>

@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: product-app
+domain:
+  group: awesome
+  name: product

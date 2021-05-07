@@ -1,0 +1,39 @@
+server:
+  port: 8180
+
+domain:
+  group: awesome
+  name: account
+
+spring:
+  application:
+    name: account-app
+  datasource:
+    platform: h2
+    url: jdbc:h2:mem:testdb;
+    username: sa
+    password: null
+    driver-class-name: org.h2.Driver
+    initialization-mode: always
+  h2:
+    console:
+      enabled: true
+      settings:
+        web-allow-others: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: user
+    password: password
+  cloud:
+    kubernetes:
+      reload:
+        enabled: false
+        strategy: refresh
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+        - "*"

@@ -1,0 +1,65 @@
+spring:
+  redis:
+    port: 6379
+    # host: redis-url
+    host: zdb-managed-asrds-redis-master.zdb-managed
+    password: ${REDIS_PASSWORD}
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 10
+        min-idle: 2
+        max-wait: 30
+    database: 1
+  datasource:
+    platform: mariadb
+    # url: jdbc:mariadb://mariadb-url:3306/database
+    url: jdbc:mariadb://zdb-managed-asdb-mariadb.zdb-managed:3306/edu999
+    username: ${MARIADB_USER}
+    password: ${MARIADB_PASSWORD}
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      # ddl-auto: create
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    database: mysql
+    # generate-ddl: true
+  cache:
+    type: redis
+  session:
+    store-type: redis
+    redis:
+      flush-mode: on_save
+      save-mode: always
+  rabbitmq:
+    # host: rabbitmq-url
+    host: zdb-managed-asmq-rabbitmq.zdb-managed
+    port: 5672
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+  sleuth:
+    traceId128: true
+  sampler:
+      probability: 1.0
+  zipkin:
+      baseUrl: http://zipkin.msa-framework:9411
+management:
+  port: 8091
+  health:
+    rabbit:
+      enabled: false
+  endpoint:
+    restart:
+      enabled: true
+    shutdown:
+      enabled: true
+  endpoints:
+    web:
+      base-path: "/actuator"
+      exposure:
+        include : "info,health,prometheus,env,configprops" 
+logging:
+    pattern:
+        level: "%X{traceId} %X{spanId} %5p"
